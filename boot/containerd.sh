@@ -10,10 +10,6 @@ root = "$XDG_DATA_HOME/usernetes/containerd"
 state = "$XDG_RUNTIME_DIR/usernetes/containerd"
 [grpc]
   address = "$XDG_RUNTIME_DIR/usernetes/containerd/containerd.sock"
-[proxy_plugins]
-  [proxy_plugins."fuse-overlayfs"]
-    type = "snapshot"
-    address = "$XDG_RUNTIME_DIR/usernetes/containerd/fuse-overlayfs.sock"
 [plugins]
   [plugins."io.containerd.grpc.v1.cri"]
     disable_cgroup = false
@@ -21,7 +17,7 @@ state = "$XDG_RUNTIME_DIR/usernetes/containerd"
     restrict_oom_score_adj = true
     disable_hugetlb_controller = true
     [plugins."io.containerd.grpc.v1.cri".containerd]
-      snapshotter = "fuse-overlayfs"
+      snapshotter = "overlayfs"
       default_runtime_name = "crun"
       [plugins."io.containerd.grpc.v1.cri".containerd.runtimes]
         [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.crun]

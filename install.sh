@@ -365,29 +365,13 @@ if [ -n "$cri" ]; then
 	cat <<EOF | x u7s-node.target
 [Unit]
 Description=Usernetes target for Kubernetes node components (${cri})
-Requires=$([ "$cri" = "containerd" ] && echo u7s-containerd-fuse-overlayfs-grpc.service) u7s-kubelet-${cri}.service u7s-kube-proxy.service $([ "$cni" = "flannel" ] && echo u7s-flanneld.service)
-After=u7s-kubelet-${cri}.service $([ "$cri" = "containerd" ] && echo u7s-containerd-fuse-overlayfs-grpc.service) u7s-kube-proxy.service $([ "$cni" = "flannel" ] && echo u7s-flanneld.service)
+Requires=u7s-kubelet-${cri}.service u7s-kube-proxy.service $([ "$cni" = "flannel" ] && echo u7s-flanneld.service)
+After=u7s-kubelet-${cri}.service u7s-kube-proxy.service $([ "$cni" = "flannel" ] && echo u7s-flanneld.service)
 PartOf=u7s.target
 
 [Install]
 WantedBy=u7s.target
 EOF
-
-	if [ "$cri" = "containerd" ]; then
-		cat <<EOF | x u7s-containerd-fuse-overlayfs-grpc.service
-[Unit]
-Description=Usernetes containerd-fuse-overlayfs-grpc service
-BindsTo=u7s-rootlesskit.service
-PartOf=u7s-node.target
-
-[Service]
-Type=notify
-NotifyAccess=all
-ExecStart=${base}/boot/containerd-fuse-overlayfs-grpc.sh
-${service_common}
-EOF
-
-	fi
 
 	cat <<EOF | x u7s-kubelet-${cri}.service
 [Unit]
