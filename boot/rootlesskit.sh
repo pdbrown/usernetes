@@ -36,10 +36,11 @@ if [[ $_U7S_CHILD == 0 ]]; then
 	# * /run: copy-up is required so that we can create /run/* in our namespace
 	# * /var/lib: copy-up is required for several Kube stuff
 	# * /opt: copy-up is required for mounting /opt/cni/bin
-	rootlesskit \
+		#--net=slirp4netns --mtu=65520 --disable-host-loopback --slirp4netns-sandbox=true --slirp4netns-seccomp=true \
+		#--port-driver=builtin \
+        /home/phil/code/systems/rootlesskit/bin/rootlesskit \
 		--state-dir $rk_state_dir \
-		--net=slirp4netns --mtu=65520 --disable-host-loopback --slirp4netns-sandbox=true --slirp4netns-seccomp=true \
-		--port-driver=builtin \
+                --net=netns \
 		--copy-up=/etc --copy-up=/run --copy-up=/var/lib --copy-up=/opt \
 		--cgroupns \
 		--pidns \
