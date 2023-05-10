@@ -35,6 +35,12 @@ if [ -n "$XDG_CONFIG_HOME" ]; then
 fi
 set -u
 
+### Load u21s config
+source "/etc/pb-system-tools/u21s@$(id -un).conf" || {
+  echo "Failed to source /etc/pb-system-tools/u21s@$(id -un).conf"
+  exit 1
+}
+
 ### Parse args
 arg0=$0
 start="u7s.target"
@@ -178,22 +184,19 @@ if [[ -n "$delay" ]]; then
 fi
 
 ### Create EnvironmentFile (~/.config/usernetes/env)
+
 mkdir -p ${config_dir}/usernetes
 cat /dev/null >${config_dir}/usernetes/env
 cat <<EOF >>${config_dir}/usernetes/env
-U7S_ROOTLESSKIT_PORTS=${publish}
+U7S_KUBE_APISERVER_BIND_ADDRESS=${U21S_NS_ADDR%/*}
 EOF
 if [ "$cni" = "flannel" ]; then
 	cat <<EOF >>${config_dir}/usernetes/env
 U7S_FLANNEL=1
 EOF
 fi
-if [ -n "$cidr" ]; then
-	cat <<EOF >>${config_dir}/usernetes/env
-U7S_ROOTLESSKIT_FLAGS=--cidr=${cidr}
-EOF
-fi
 
+master=${U21S_NS_ADDR%/*}
 if [[ -n "$wait_init_certs" ]]; then
 	max_trial=300
 	INFO "Waiting for certs to be created.":
@@ -209,9 +212,8 @@ elif [[ ! -d ${config_dir}/usernetes/master ]]; then
 	### If the keys are not generated yet, generate them for the single-node cluster
 	INFO "Generating single-node cluster TLS keys (${config_dir}/usernetes/{master,node})"
 	cfssldir=$(mktemp -d /tmp/cfssl.XXXXXXXXX)
-	master=127.0.0.1
 	node=$(hostname)
-	${base}/common/cfssl.sh --dir=${cfssldir} --master=$master --node=$node,127.0.0.1
+	${base}/common/cfssl.sh --dir=${cfssldir} --master=$master --node="${node},127.0.0.1"
 	rm -rf ${config_dir}/usernetes/{master,node}
 	cp -r "${cfssldir}/master" ${config_dir}/usernetes/master
 	cp -r "${cfssldir}/nodes.$node" ${config_dir}/usernetes/node
@@ -415,40 +417,10 @@ fi
 
 ### Finish installation
 systemctl --user daemon-reload
-if [ -z $start ]; then
-	INFO 'Run `systemctl --user -T start u7s.target` to start Usernetes.'
-	exit 0
-fi
-INFO "Starting $start"
-set -x
-systemctl --user -T enable $start
-time systemctl --user -T start $start
-systemctl --user --all --no-pager list-units 'u7s-*'
-set +x
-
-KUBECONFIG=
-if systemctl --user -q is-active u7s-master.target; then
-	PATH="${base}/bin:$PATH"
-	KUBECONFIG="${config_dir}/usernetes/master/admin-localhost.kubeconfig"
-	export PATH KUBECONFIG
-	INFO "Installing CoreDNS"
-	set -x
-	# sleep for waiting the node to be available
-	sleep 3
-	kubectl get nodes -o wide
-	kubectl apply -f ${base}/manifests/coredns.yaml
-	set +x
-	INFO "Waiting for CoreDNS pods to be available"
-	set -x
-	# sleep for waiting the pod object to be created
-	sleep 3
-	kubectl -n kube-system wait --for=condition=ready pod -l k8s-app=kube-dns
-	kubectl get pods -A -o wide
-	set +x
-fi
-
 INFO "Installation complete."
+INFO "Start unprivileged kubernetes with \`sudo systemctl start u21s@\$(id -u).target\`."
+INFO "Then, run \`kubectl apply -f ${base}/manifests/coredns.yaml\` to install CoreDNS."
 INFO 'Hint: `sudo loginctl enable-linger` to start user services automatically on the system start up.'
 if [[ -n "${KUBECONFIG}" ]]; then
-	INFO "Hint: export KUBECONFIG=${KUBECONFIG}"
+  INFO "Hint: export KUBECONFIG=$HOME/.config/usernetes/master/admin-${master}.kubeconfig"
 fi

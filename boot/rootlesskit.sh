@@ -4,10 +4,13 @@
 # * $U7S_ROOTLESSKIT_PORTS
 # * $U7S_FLANNEL
 
+set -e
+
 export U7S_BASE_DIR=$(realpath $(dirname $0)/..)
 source $U7S_BASE_DIR/common/common.inc.sh
 
 rk_state_dir=$XDG_RUNTIME_DIR/usernetes/rootlesskit
+mkdir -p "$rk_state_dir"
 
 : ${U7S_ROOTLESSKIT_FLAGS=}
 : ${U7S_ROOTLESSKIT_PORTS=}
@@ -23,32 +26,11 @@ if [[ $_U7S_CHILD == 0 ]]; then
 	fi
 	export _U7S_CHILD U7S_PARENT_IP
 
-	# Re-exec the script via RootlessKit, so as to create unprivileged {user,mount,network} namespaces.
-	#
-	# --net specifies the network stack. slirp4netns and VPNKit are supported.
-	# Currently, slirp4netns is the fastest.
-	# See https://github.com/rootless-containers/rootlesskit for the benchmark result.
-	#
-	# --copy-up allows removing/creating files in the directories by creating tmpfs and symlinks
-	# * /etc: copy-up is required so as to prevent `/etc/resolv.conf` in the
-	#         namespace from being unexpectedly unmounted when `/etc/resolv.conf` is recreated on the host
-	#         (by either systemd-networkd or NetworkManager)
-	# * /run: copy-up is required so that we can create /run/* in our namespace
-	# * /var/lib: copy-up is required for several Kube stuff
-	# * /opt: copy-up is required for mounting /opt/cni/bin
-	rootlesskit \
-		--state-dir $rk_state_dir \
-		--net=slirp4netns --mtu=65520 --disable-host-loopback --slirp4netns-sandbox=true --slirp4netns-seccomp=true \
-		--port-driver=builtin \
-		--copy-up=/etc --copy-up=/run --copy-up=/var/lib --copy-up=/opt \
-		--cgroupns \
-		--pidns \
-		--ipcns \
-		--utsns \
-		--propagation=rslave \
-		--evacuate-cgroup2="rootlesskit_evac" \
-		$U7S_ROOTLESSKIT_FLAGS \
-		$0 $@
+        pb-rootlesskit --pidfile "$rk_state_dir/child_pid" \
+                       --hook "pb-rootlesskit copy_up /etc /run /opt /var/lib" \
+                       --hook "u21s-dnsmasq '$HOME/.config/usernetes/u21s-dnsmasq.conf'" \
+                       "$0" "$@"
+
 else
 	# save IP address
 	echo $U7S_PARENT_IP >$XDG_RUNTIME_DIR/usernetes/parent_ip

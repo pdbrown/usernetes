@@ -17,7 +17,7 @@ exec $(dirname $0)/nsenter.sh kube-apiserver \
 	--service-cluster-ip-range=10.0.0.0/16 \
 	--service-account-issuer="kubernetes.default.svc" \
 	--service-account-signing-key-file=$XDG_CONFIG_HOME/usernetes/master/service-account-key.pem \
-	--advertise-address=$(cat $XDG_RUNTIME_DIR/usernetes/parent_ip) \
+	--bind-address=0.0.0.0 \
 	--allow-privileged \
 	$@
 
