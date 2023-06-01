@@ -71,20 +71,20 @@ function nsenter::_nsenter_retry_loop() {
 }
 
 function nsenter::_nsenter() {
-	local pidfile=$XDG_RUNTIME_DIR/usernetes/rootlesskit/child_pid
+  export ROOTLESSKIT_STATE_DIR=$XDG_RUNTIME_DIR/usernetes/rootlesskit${RK_INSTANCE:+"-$RK_INSTANCE"}
+  local pidfile=$ROOTLESSKIT_STATE_DIR/child_pid
 	if ! [[ -f $pidfile ]]; then
 		return 1
 	fi
 	# workaround for https://github.com/rootless-containers/rootlesskit/issues/37
 	# see the corresponding code in boot/rootlesskit.sh
-	local pidreadyfile=$XDG_RUNTIME_DIR/usernetes/rootlesskit/_child_pid.u7s-ready
+	local pidreadyfile=$ROOTLESSKIT_STATE_DIR/_child_pid.u7s-ready
 	if ! [[ -f $pidreadyfile ]]; then
 		return 1
 	fi
 	if ! [[ $(cat $pidfile) -eq $(cat $pidreadyfile) ]]; then
 		return 1
 	fi
-	export ROOTLESSKIT_STATE_DIR=$XDG_RUNTIME_DIR/usernetes/rootlesskit
 	# TODO(AkihiroSuda): ping to $XDG_RUNTIME_DIR/usernetes/rootlesskit/api.sock
 	nsenter --user --preserve-credential --mount --net --cgroup --pid --ipc --uts -t $(cat $pidfile) --wd=$PWD -- $@
 }
