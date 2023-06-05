@@ -14,4 +14,7 @@ set -u
 set +e
 set -x
 
+# Restore permissions to containerd snapshot dirs
+find "$data_dir/usernetes" -type d -perm 000 2> /dev/null | xargs --no-run-if-empty chmod u+rwx
+# And delete
 rm -rf "$config_dir/usernetes" "$data_dir/usernetes"

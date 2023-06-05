@@ -26,6 +26,7 @@ if [[ $_U7S_CHILD == 0 ]]; then
 
         pb-rootlesskit --pidfile "$rk_state_dir/child_pid" \
                        --hook "pb-rootlesskit copy_up /etc /run /opt /var/lib" \
+                       --hook "hostname $(hostname -s)-u7sn${RK_INSTANCE:-1}" \
                        --hook "u21s-dnsmasq '$HOME/.config/usernetes/u21s-dnsmasq.conf'" \
                        "$0" "$@"
 
@@ -67,7 +68,7 @@ else
 	# hard-coded in Kube and CRI-O.
 	binds=(/var/lib/kubelet /var/lib/cni /var/log /var/lib/containers /var/cache)
 	for f in ${binds[@]}; do
-	  src=$XDG_DATA_HOME/usernetes_var${RK_INSTANCE:+"_$RK_INSTANCE"}/$(echo $f | sed -e s@/@_@g)
+	  src=$XDG_DATA_HOME/usernetes/bind${RK_INSTANCE:+"_node$RK_INSTANCE"}/$(echo $f | sed -e s@/@_@g)
 	  if [[ -L $f ]]; then
 	    # Remove link created by `rootlesskit --copy-up` if any
 	    rm -rf $f

@@ -35,7 +35,7 @@ if [ -n "$XDG_CONFIG_HOME" ]; then
 fi
 set -u
 
-### Load u21s config
+### Load u21s config for NETNS_ADDR config var
 source "/etc/pb-system-tools/u21s@$(id -un).conf" || {
   echo "Failed to source /etc/pb-system-tools/u21s@$(id -un).conf"
   exit 1
@@ -188,7 +188,7 @@ fi
 mkdir -p ${config_dir}/usernetes
 cat /dev/null >${config_dir}/usernetes/env
 cat <<EOF >>${config_dir}/usernetes/env
-U7S_KUBE_APISERVER_BIND_ADDRESS=${U21S_NS_ADDR%/*}
+U7S_KUBE_APISERVER_BIND_ADDRESS=${NETNS_ADDR%/*}
 EOF
 if [ "$cni" = "flannel" ]; then
 	cat <<EOF >>${config_dir}/usernetes/env
@@ -196,7 +196,7 @@ U7S_FLANNEL=1
 EOF
 fi
 
-master=${U21S_NS_ADDR%/*}
+master=${NETNS_ADDR%/*}
 if [[ -n "$wait_init_certs" ]]; then
 	max_trial=300
 	INFO "Waiting for certs to be created.":
@@ -302,6 +302,8 @@ PartOf=u7s-etcd.target
 [Service]
 Type=notify
 NotifyAccess=all
+# Bash exits with status 129 on SIGHUP (128 + signum:1)
+SuccessExitStatus=129
 ExecStart=${base}/boot/etcd.sh
 ExecStartPost=${base}/boot/etcd-init-data.sh
 ${service_common}
