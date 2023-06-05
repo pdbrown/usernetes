@@ -351,11 +351,11 @@ $ sudo sh -c "echo 0   2147483647  > /proc/sys/net/ipv4/ping_group_range"
 
 ### IP addresses
 
-* 10.0.0.0/24: The CIDR for the Kubernetes ClusterIP services
+* 10.0.0.0/16: The CIDR for the Kubernetes ClusterIP services
   * 10.0.0.1: The kube-apiserver ClusterIP
   * 10.0.0.53: The CoreDNS ClusterIP
 
-* 10.0.42.0/24: The default CIDR for the RootlessKit network namespace. Can be overridden with `install.sh --cidr=<CIDR>`. 
+* 10.0.42.0/24: The default CIDR for the RootlessKit network namespace. Can be overridden with `install.sh --cidr=<CIDR>`.
   * 10.0.42.2: The slirp4netns gateway
   * 10.0.42.3: The slirp4netns DNS
   * 10.0.42.100: The slirp4netns TAP device

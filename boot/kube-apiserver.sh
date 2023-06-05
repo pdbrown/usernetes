@@ -14,7 +14,7 @@ exec $(dirname $0)/nsenter.sh kube-apiserver \
 	--tls-cert-file=$XDG_CONFIG_HOME/usernetes/master/kubernetes.pem \
 	--tls-private-key-file=$XDG_CONFIG_HOME/usernetes/master/kubernetes-key.pem \
 	--service-account-key-file=$XDG_CONFIG_HOME/usernetes/master/service-account.pem \
-	--service-cluster-ip-range=10.0.0.0/24 \
+	--service-cluster-ip-range=10.0.0.0/16 \
 	--service-account-issuer="kubernetes.default.svc" \
 	--service-account-signing-key-file=$XDG_CONFIG_HOME/usernetes/master/service-account-key.pem \
 	--advertise-address=$(cat $XDG_RUNTIME_DIR/usernetes/parent_ip) \
