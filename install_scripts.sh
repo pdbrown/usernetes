@@ -22,4 +22,5 @@ INSTALL_DIR="$1"
 
 cp boot/* "$INSTALL_DIR/boot"
 cp common/* "$INSTALL_DIR/common"
+cp manifests/* "$INSTALL_DIR/manifests"
 cp install.sh install_node2.sh uninstall.sh wipe.sh "$INSTALL_DIR"

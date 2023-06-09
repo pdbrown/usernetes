@@ -170,6 +170,8 @@ spec:
   selector:
     k8s-app: kube-dns
   clusterIP: 10.0.0.53
+  externalIPs:
+    - 172.16.53.1
   ports:
   - name: dns
     port: 53
