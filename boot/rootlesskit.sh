@@ -7,7 +7,8 @@
 export U7S_BASE_DIR=$(realpath $(dirname $0)/..)
 source $U7S_BASE_DIR/common/common.inc.sh
 
-rk_state_dir=$XDG_RUNTIME_DIR/usernetes/rootlesskit${RK_INSTANCE:+"-$RK_INSTANCE"}
+: ${RK_INSTANCE:=1}
+rk_state_dir=$XDG_RUNTIME_DIR/usernetes/rootlesskit-$RK_INSTANCE
 mkdir -p "$rk_state_dir"
 
 : ${U7S_ROOTLESSKIT_FLAGS=}
@@ -24,11 +25,11 @@ if [[ $_U7S_CHILD == 0 ]]; then
 	fi
 	export _U7S_CHILD U7S_PARENT_IP
 
-        pb-rootlesskit --pidfile "$rk_state_dir/child_pid" \
-                       --hook "pb-rootlesskit copy_up /etc /run /opt /var/lib" \
-                       --hook "hostname $(hostname -s)-u7sn${RK_INSTANCE:-1}" \
-                       --hook "u21s-dnsmasq '$HOME/.config/usernetes/u21s-dnsmasq.conf'" \
-                       "$0" "$@"
+	pb-rootlesskit --pidfile "$rk_state_dir/child_pid" \
+		--hook "pb-rootlesskit copy_up /etc /run /opt /var/lib" \
+		--hook "hostname $(hostname -s)-u7sn${RK_INSTANCE}" \
+		--hook "u21s-dnsmasq '$HOME/.config/usernetes/u21s-dnsmasq.conf'" \
+		"$0" "$@"
 
 else
 	# save IP address
@@ -42,7 +43,7 @@ else
 		/etc/cni \
 		/etc/containerd /etc/containers /etc/crio \
 		/etc/kubernetes \
-                /var/lib/kubelet /var/lib/cni /var/lib/containerd
+		/var/lib/kubelet /var/lib/cni /var/lib/containerd
 
 	# Copy CNI config to /etc/cni/net.d (Likely to be hardcoded in CNI installers)
 	mkdir -p /etc/cni/net.d
@@ -52,13 +53,13 @@ else
 		mkdir -p /run/flannel
 	fi
 
-        # Hack to tweak bridge network for node2. Need to use a different
-        # network so hostns can route between nodes(so between 10.88.0.0 and 10.89.0.0).
-        set +u
-        if [ "$RK_INSTANCE" = "2" ]; then
-         sed -i 's/10.88.0.0/10.89.0.0/' /etc/cni/net.d/50-bridge.conf
-        fi
-        set -u
+	# Hack to tweak bridge network for node2. Need to use a different
+	# network so hostns can route between nodes(so between 10.88.0.0 and 10.89.0.0).
+	set +u
+	if [ "$RK_INSTANCE" = "2" ]; then
+		sed -i 's/10.88.0.0/10.89.0.0/' /etc/cni/net.d/50-bridge.conf
+	fi
+	set -u
 
 	# Bind-mount /opt/cni/net.d (Likely to be hardcoded in CNI installers)
 	mkdir -p /opt/cni/bin
@@ -68,13 +69,13 @@ else
 	# hard-coded in Kube and CRI-O.
 	binds=(/var/lib/kubelet /var/lib/cni /var/log /var/lib/containers /var/cache)
 	for f in ${binds[@]}; do
-	  src=$XDG_DATA_HOME/usernetes/bind${RK_INSTANCE:+"_node$RK_INSTANCE"}/$(echo $f | sed -e s@/@_@g)
-	  if [[ -L $f ]]; then
-	    # Remove link created by `rootlesskit --copy-up` if any
-	    rm -rf $f
-	  fi
-	  mkdir -p $src $f
-	  mount --bind $src $f
+		src=$XDG_DATA_HOME/usernetes/node${RK_INSTANCE}_bind/$(echo $f | sed -e s@/@_@g)
+		if [[ -L $f ]]; then
+			# Remove link created by `rootlesskit --copy-up` if any
+			rm -rf $f
+		fi
+		mkdir -p $src $f
+		mount --bind $src $f
 	done
 
 	rk_pid=$(cat $rk_state_dir/child_pid)

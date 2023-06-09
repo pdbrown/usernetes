@@ -71,7 +71,7 @@ function nsenter::_nsenter_retry_loop() {
 }
 
 function nsenter::_nsenter() {
-  export ROOTLESSKIT_STATE_DIR=$XDG_RUNTIME_DIR/usernetes/rootlesskit${RK_INSTANCE:+"-$RK_INSTANCE"}
+  export ROOTLESSKIT_STATE_DIR=$XDG_RUNTIME_DIR/usernetes/rootlesskit-${RK_INSTANCE:-1}
   local pidfile=$ROOTLESSKIT_STATE_DIR/child_pid
 	if ! [[ -f $pidfile ]]; then
 		return 1
