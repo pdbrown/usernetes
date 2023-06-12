@@ -57,7 +57,7 @@ data:
         errors
         health
         ready
-        kubernetes cluster.local in-addr.arpa ip6.arpa {
+        kubernetes $U7S_CLUSTER_DOMAIN in-addr.arpa ip6.arpa {
           pods insecure
           fallthrough in-addr.arpa ip6.arpa
         }
@@ -78,7 +78,7 @@ metadata:
     k8s-app: kube-dns
     kubernetes.io/name: "CoreDNS"
 spec:
-  replicas: 2
+  replicas: 1
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -169,9 +169,8 @@ metadata:
 spec:
   selector:
     k8s-app: kube-dns
-  clusterIP: 10.0.0.53
-  externalIPs:
-    - 172.16.53.1
+  clusterIP: $U7S_DNS_CLUSTER_IP
+$U7S_DNS_EXTERNAL_IP_STANZA
   ports:
   - name: dns
     port: 53

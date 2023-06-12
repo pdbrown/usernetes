@@ -139,7 +139,7 @@ if [[ -f "${master_d}/kubernetes.pem" ]]; then
 	log::info "Already exists: ${master_d}/kubernetes.pem"
 else
 	log::info "Creating ${master_d}/{kubernetes.pem,kubernetes-key.pem}"
-	k_hostnames="kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster,kubernetes.svc.cluster.local"
+	k_hostnames="kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.$U7S_CLUSTER_DOMAIN"
 	if hostname -I &>/dev/null ; then
 		ip_addrs=$(hostname -I | sed -e 's/ /,/g' -e 's/,$//g')
 	else

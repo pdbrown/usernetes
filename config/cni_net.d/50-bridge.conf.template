@@ -7,7 +7,7 @@
     "ipMasq": true,
     "ipam": {
         "type": "host-local",
-        "subnet": "10.88.0.0/16",
+        "subnet": "$U7S_CNI_BRIDGE_SUBNET",
         "routes": [
             { "dst": "0.0.0.0/0" }
         ]

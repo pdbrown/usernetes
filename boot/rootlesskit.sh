@@ -47,19 +47,11 @@ else
 
 	# Copy CNI config to /etc/cni/net.d (Likely to be hardcoded in CNI installers)
 	mkdir -p /etc/cni/net.d
-	cp -f $U7S_BASE_DIR/config/cni_net.d/* /etc/cni/net.d
+	cp -f $U7S_BASE_DIR/config/cni_net.d/*.conf /etc/cni/net.d
 	if [[ $U7S_FLANNEL == 1 ]]; then
 		cp -f $U7S_BASE_DIR/config/flannel/cni_net.d/* /etc/cni/net.d
 		mkdir -p /run/flannel
 	fi
-
-	# Hack to tweak bridge network for node2. Need to use a different
-	# network so hostns can route between nodes(so between 10.88.0.0 and 10.89.0.0).
-	set +u
-	if [ "$RK_INSTANCE" = "2" ]; then
-		sed -i 's/10.88.0.0/10.89.0.0/' /etc/cni/net.d/50-bridge.conf
-	fi
-	set -u
 
 	# Bind-mount /opt/cni/net.d (Likely to be hardcoded in CNI installers)
 	mkdir -p /opt/cni/bin

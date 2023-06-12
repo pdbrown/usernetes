@@ -1,4 +1,21 @@
 #!/bin/bash
+# install.sh: Usernetes install script. This version of install.sh is modified
+# to set up usernetes in pb-system-tools' "Unprivileged Kubernetes" (u21s) mode.
+# Some of the command line configs are irreleveant/obsolete/non-functional in
+# this version, e.g. the networking related ones, since u21s takes care of
+# networking outside of u7s.
+# This modification adds new config options via the environment. The following
+# variables can be configured.
+#
+# export U7S_CLUSTER_DOMAIN=cluster.local
+# export U7S_SERVICE_CLUSTER_IP_RANGE=10.0.0.0/16
+# export U7S_DNS_CLUSTER_IP=10.0.0.53
+# export U7S_CNI_BRIDGE_SUBNET=10.88.0.0/16
+# # Optional:
+# export U7S_DNS_EXTERNAL_IP=
+# # Then run this script as usual:
+# ./install.sh
+
 set -e -o pipefail
 
 function INFO() {
@@ -12,6 +29,7 @@ function WARNING() {
 function ERROR() {
 	echo >&2 -e "\e[101m\e[97m[ERROR]\e[49m\e[39m $@"
 }
+
 
 ### Detect base dir
 cd $(dirname $0)
@@ -35,11 +53,18 @@ if [ -n "$XDG_CONFIG_HOME" ]; then
 fi
 set -u
 
-### Load u21s config for NETNS_ADDR config var
+### Load u21s config for NETNS_ADDR config var, and set default config vars
 source "/etc/pb-system-tools/u21s@$(id -un).conf" || {
   echo "Failed to source /etc/pb-system-tools/u21s@$(id -un).conf"
   exit 1
 }
+
+: ${U7S_CLUSTER_DOMAIN:-cluster.local}
+: ${U7S_SERVICE_CLUSTER_IP_RANGE:-10.0.0.0/16}
+: ${U7S_DNS_CLUSTER_IP:-10.0.0.53}
+: ${U7S_CNI_BRIDGE_SUBNET:-10.88.0.0/16}
+# Export for cfssl.sh:
+export U7S_CLUSTER_DOMAIN
 
 ### Parse args
 arg0=$0
@@ -189,6 +214,9 @@ mkdir -p ${config_dir}/usernetes
 cat /dev/null >${config_dir}/usernetes/env
 cat <<EOF >>${config_dir}/usernetes/env
 U7S_KUBE_APISERVER_BIND_ADDRESS=${NETNS_ADDR%/*}
+U7S_CLUSTER_DOMAIN=${U7S_CLUSTER_DOMAIN}
+U7S_SERVICE_CLUSTER_IP_RANGE=${U7S_SERVICE_CLUSTER_IP_RANGE}
+U7S_DNS_CLUSTER_IP=${U7S_DNS_CLUSTER_IP}
 EOF
 if [ "$cni" = "flannel" ]; then
 	cat <<EOF >>${config_dir}/usernetes/env
@@ -416,6 +444,43 @@ ${service_common}
 EOF
 	fi
 fi
+
+### Render config templates
+function render_template {
+  # "$@" args are var names
+  local v val escaped_val exps
+  exps=()
+  for v in "$@"; do
+    # ${!v} is value of var named by $v. If $v contains characters that are not
+    # alphanumeric or underscore, ${!v} fails and we abort. So if ${!v}
+    # succeeds, $v can be part of a sed match pattern, and requires no escaping.
+    val="${!v}" || return 1
+    # ${val} does require escaping, since it might contain the delimiter
+    # (forward slash), or references: \1, \2, etc or &
+    #   / & \ -> \/ \& \\
+    escaped_val=$(sed 's/[/&\]/\\&/g' <<<"$val")
+    exps+=(-e 's/\$'"$v"/"$escaped_val"/g)
+  done
+  sed "${exps[@]}"
+}
+
+# CoreDNS
+if [ "$U7S_DNS_EXTERNAL_IP" ]; then
+  U7S_DNS_EXTERNAL_IP_STANZA="  externalIPs:
+    - $U7S_DNS_EXTERNAL_IP"
+fi
+
+render_template U7S_CLUSTER_DOMAIN \
+                U7S_DNS_CLUSTER_IP \
+                U7S_DNS_EXTERNAL_IP_STANZA \
+                < manifests/coredns.yaml.template \
+                > manifests/coredns.yaml
+
+# CNI bridge
+render_template U7S_CNI_BRIDGE_SUBNET \
+                < config/cni_net.d/50-bridge.conf.template \
+                > config/cni_net.d/50-bridge.conf
+
 
 ### Finish installation
 systemctl --user daemon-reload

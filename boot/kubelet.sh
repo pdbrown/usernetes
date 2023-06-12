@@ -8,15 +8,15 @@ kind: KubeletConfiguration
 apiVersion: kubelet.config.k8s.io/v1beta1
 volumePluginDir: $XDG_DATA_HOME/usernetes/kubelet-plugins-exec
 authentication:
-  anonymous: 
+  anonymous:
     enabled: false
   x509:
     clientCAFile: "$XDG_CONFIG_HOME/usernetes/node/ca.pem"
 tlsCertFile: "$XDG_CONFIG_HOME/usernetes/node/node.pem"
 tlsPrivateKeyFile: "$XDG_CONFIG_HOME/usernetes/node/node-key.pem"
-clusterDomain: "cluster.local"
+clusterDomain: "$U7S_CLUSTER_DOMAIN"
 clusterDNS:
-  - "10.0.0.53"
+  - "$U7S_DNS_CLUSTER_IP"
 failSwapOn: false
 featureGates:
   KubeletInUserNamespace: true
