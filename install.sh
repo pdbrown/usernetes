@@ -18,22 +18,11 @@
 
 set -e -o pipefail
 
-function INFO() {
-	echo -e "\e[104m\e[97m[INFO]\e[49m\e[39m $@"
-}
-
-function WARNING() {
-	echo >&2 -e "\e[101m\e[97m[WARNING]\e[49m\e[39m $@"
-}
-
-function ERROR() {
-	echo >&2 -e "\e[101m\e[97m[ERROR]\e[49m\e[39m $@"
-}
-
-
 ### Detect base dir
 cd $(dirname $0)
 base=$(realpath $(pwd))
+source "$base/common/install.inc.sh"
+
 
 ### Detect bin dir, fail early if not found
 if [ ! -d "$base/bin" ]; then
@@ -41,7 +30,7 @@ if [ ! -d "$base/bin" ]; then
 	exit 1
 fi
 
-### Detect config dir
+### Set config vars
 set +u
 if [ -z "$HOME" ]; then
 	ERROR "HOME needs to be set"
@@ -50,6 +39,13 @@ fi
 config_dir="$HOME/.config"
 if [ -n "$XDG_CONFIG_HOME" ]; then
 	config_dir="$XDG_CONFIG_HOME"
+fi
+
+if [ "$U7S_DNS_EXTERNAL_IP" ]; then
+  U7S_DNS_EXTERNAL_IP_STANZA="  externalIPs:
+    - $U7S_DNS_EXTERNAL_IP"
+else
+  U7S_DNS_EXTERNAL_IP_STANZA=
 fi
 set -u
 
@@ -62,6 +58,7 @@ source "/etc/pb-system-tools/u21s@$(id -un).conf" || {
 : ${U7S_CLUSTER_DOMAIN:-cluster.local}
 : ${U7S_SERVICE_CLUSTER_IP_RANGE:-10.0.0.0/16}
 : ${U7S_DNS_CLUSTER_IP:-10.0.0.53}
+: ${U7S_DNS_REPLICAS:-2}
 : ${U7S_CNI_BRIDGE_SUBNET:-10.88.0.0/16}
 # Export for cfssl.sh:
 export U7S_CLUSTER_DOMAIN
@@ -195,13 +192,6 @@ else
 	fi
 fi
 
-# check kernel modules
-for f in $(cat ${base}/config/modules-load.d/usernetes.conf); do
-	if ! grep -qw "^$f" /proc/modules; then
-		WARNING "Kernel module $f not loaded"
-	fi
-done
-
 # Delay for debugging
 if [[ -n "$delay" ]]; then
 	INFO "Delay: $delay seconds..."
@@ -224,6 +214,22 @@ U7S_FLANNEL=1
 EOF
 fi
 
+### Render config templates
+# CoreDNS
+render_template U7S_CLUSTER_DOMAIN \
+                U7S_DNS_CLUSTER_IP \
+                U7S_DNS_EXTERNAL_IP_STANZA \
+                U7S_DNS_REPLICAS \
+                < manifests/coredns.yaml.template \
+                > manifests/coredns.yaml
+
+# CNI bridge
+render_template U7S_CNI_BRIDGE_SUBNET \
+                < config/node1/cni_net.d/50-bridge.conf.template \
+                > config/node1/cni_net.d/50-bridge.conf
+
+
+### Setup SSL certs
 master=${NETNS_ADDR%/*}
 if [[ -n "$wait_init_certs" ]]; then
 	max_trial=300
@@ -444,42 +450,6 @@ ${service_common}
 EOF
 	fi
 fi
-
-### Render config templates
-function render_template {
-  # "$@" args are var names
-  local v val escaped_val exps
-  exps=()
-  for v in "$@"; do
-    # ${!v} is value of var named by $v. If $v contains characters that are not
-    # alphanumeric or underscore, ${!v} fails and we abort. So if ${!v}
-    # succeeds, $v can be part of a sed match pattern, and requires no escaping.
-    val="${!v}" || return 1
-    # ${val} does require escaping, since it might contain the delimiter
-    # (forward slash), or references: \1, \2, etc or &
-    #   / & \ -> \/ \& \\
-    escaped_val=$(sed 's/[/&\]/\\&/g' <<<"$val")
-    exps+=(-e 's/\$'"$v"/"$escaped_val"/g)
-  done
-  sed "${exps[@]}"
-}
-
-# CoreDNS
-if [ "$U7S_DNS_EXTERNAL_IP" ]; then
-  U7S_DNS_EXTERNAL_IP_STANZA="  externalIPs:
-    - $U7S_DNS_EXTERNAL_IP"
-fi
-
-render_template U7S_CLUSTER_DOMAIN \
-                U7S_DNS_CLUSTER_IP \
-                U7S_DNS_EXTERNAL_IP_STANZA \
-                < manifests/coredns.yaml.template \
-                > manifests/coredns.yaml
-
-# CNI bridge
-render_template U7S_CNI_BRIDGE_SUBNET \
-                < config/cni_net.d/50-bridge.conf.template \
-                > config/cni_net.d/50-bridge.conf
 
 
 ### Finish installation

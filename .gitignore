@@ -8,3 +8,4 @@ _artifact/
 # Ignore rendered templates:
 manifests/coredns.yaml
 config/cni_net.d/50-bridge.conf
+config_node2/

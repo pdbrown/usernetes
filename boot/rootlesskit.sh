@@ -32,10 +32,12 @@ if [[ $_U7S_CHILD == 0 ]]; then
 		"$0" "$@"
 
 else
+  # TODO put all this '_U7S_CHILD' work into pb-rootlesskit --hooks.
+
 	# save IP address
 	echo $U7S_PARENT_IP >$XDG_RUNTIME_DIR/usernetes/parent_ip
 
-	# Remove symlinks so that the child won't be confused by the parent configuration
+	# Remove symlinks so that the child won't be confused by any parent configuration
 	rm -f \
 		/run/xtables.lock /run/flannel /run/netns \
 		/run/runc /run/crun \
@@ -47,9 +49,10 @@ else
 
 	# Copy CNI config to /etc/cni/net.d (Likely to be hardcoded in CNI installers)
 	mkdir -p /etc/cni/net.d
-	cp -f $U7S_BASE_DIR/config/cni_net.d/*.conf /etc/cni/net.d
+	config_dir="$U7S_BASE_DIR/config/node${RK_INSTANCE}"
+	cp -f $config_dir/cni_net.d/*.conf /etc/cni/net.d
 	if [[ $U7S_FLANNEL == 1 ]]; then
-		cp -f $U7S_BASE_DIR/config/flannel/cni_net.d/* /etc/cni/net.d
+		cp -f $config_dir/flannel/cni_net.d/* /etc/cni/net.d
 		mkdir -p /run/flannel
 	fi
 

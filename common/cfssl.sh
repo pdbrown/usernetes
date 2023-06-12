@@ -8,7 +8,7 @@ source $U7S_BASE_DIR/common/common.inc.sh
 # global vars
 arg0="$0"
 loglevel="2"
-cc="$U7S_BASE_DIR/config/cfssl"
+cc="$U7S_BASE_DIR/config/node1/cfssl"
 
 # opts
 dir=""

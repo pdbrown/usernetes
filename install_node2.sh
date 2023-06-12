@@ -1,21 +1,10 @@
 #!/bin/bash
 set -e -o pipefail
 
-function INFO() {
-	echo -e "\e[104m\e[97m[INFO]\e[49m\e[39m $@"
-}
-
-function WARNING() {
-	echo >&2 -e "\e[101m\e[97m[WARNING]\e[49m\e[39m $@"
-}
-
-function ERROR() {
-	echo >&2 -e "\e[101m\e[97m[ERROR]\e[49m\e[39m $@"
-}
-
 ### Detect base dir
 cd $(dirname $0)
 base=$(realpath $(pwd))
+source "$base/common/install.inc.sh"
 
 ### Detect bin dir, fail early if not found
 if [ ! -d "$base/bin" ]; then
@@ -35,11 +24,12 @@ if [ -n "$XDG_CONFIG_HOME" ]; then
 fi
 set -u
 
-### Load u21s config
-source "/etc/pb-system-tools/u21s@$(id -un).conf" || {
-  echo "Failed to source /etc/pb-system-tools/u21s@$(id -un).conf"
-  exit 1
-}
+### Render config templates
+# CNI bridge
+mkdir -p config/node2/cni_net.d
+render_template U7S_CNI_BRIDGE_SUBNET \
+                < config/node1/cni_net.d/50-bridge.conf.template \
+                > config/node2/cni_net.d/50-bridge.conf
 
 
 ### Begin installation
