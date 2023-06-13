@@ -27,7 +27,7 @@ if [[ $_U7S_CHILD == 0 ]]; then
 
 	pb-rootlesskit --pidfile "$rk_state_dir/child_pid" \
 		--hook "pb-rootlesskit copy_up /etc /run /opt /var/lib" \
-		--hook "hostname $(hostname -s)-u7sn${RK_INSTANCE}" \
+		--hook "pb-rootlesskit set_hostname $(hostname -s)-u7sn${RK_INSTANCE}" \
 		--hook "u21s-dnsmasq '$HOME/.config/usernetes/u21s-dnsmasq.conf'" \
 		"$0" "$@"
 
