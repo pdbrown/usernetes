@@ -457,7 +457,4 @@ systemctl --user daemon-reload
 INFO "Installation complete."
 INFO "Start unprivileged kubernetes with \`sudo systemctl start u21s@\$(id -u).target\`."
 INFO "Then, run \`kubectl apply -f ${base}/manifests/coredns.yaml\` to install CoreDNS."
-INFO 'Hint: `sudo loginctl enable-linger` to start user services automatically on the system start up.'
-if [[ -n "${KUBECONFIG}" ]]; then
-  INFO "Hint: export KUBECONFIG=$HOME/.config/usernetes/master/admin-${master}.kubeconfig"
-fi
+INFO 'Hint: `sudo loginctl enable-linger` to start user services automatically on system start up.'
