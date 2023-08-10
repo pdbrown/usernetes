@@ -15,7 +15,7 @@ exec $(dirname $0)/nsenter.sh kube-apiserver \
 	--tls-private-key-file=$XDG_CONFIG_HOME/usernetes/master/kubernetes-key.pem \
 	--service-account-key-file=$XDG_CONFIG_HOME/usernetes/master/service-account.pem \
 	--service-cluster-ip-range=$U7S_SERVICE_CLUSTER_IP_RANGE \
-	--service-account-issuer="kubernetes.default.svc" \
+	--service-account-issuer="https://kubernetes.default.svc.$U7S_CLUSTER_DOMAIN" \
 	--service-account-signing-key-file=$XDG_CONFIG_HOME/usernetes/master/service-account-key.pem \
 	--bind-address=0.0.0.0 \
 	--allow-privileged \
